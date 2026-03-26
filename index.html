@@ -413,7 +413,12 @@ window.intercomSettings = {
     }, 2000);
   });
 
-  log('Test page loaded. Set identity fields and click Initialize.');
+  // Auto-initialize on load so Pendo registers the installation
+  window.addEventListener('load', function() {
+    setTimeout(initBoth, 500);
+  });
+
+  log('Test page loaded. Auto-initializing Pendo + Intercom...');
 </script>
 
 </body>
