@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pendo + Intercom Test Page</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; }
+    header span { font-size: 13px; opacity: 0.6; }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .status-item {
+      flex: 1;
+      min-width: 180px;
+      background: #f8f9fb;
+      border-radius: 8px;
+      padding: 14px 18px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .status-item label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #999;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .status-item .value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.green { background: #d1fae5; color: #065f46; }
+    .badge.red   { background: #fee2e2; color: #991b1b; }
+    .badge.gray  { background: #e5e7eb; color: #4b5563; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      padding: 9px 18px;
+      border-radius: 6px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+
+    .btn-primary   { background: #4f46e5; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-danger    { background: #ef4444; color: white; }
+
+    #log {
+      background: #0f172a;
+      color: #7dd3fc;
+      font-family: "SF Mono", Menlo, monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    #log .ts { color: #475569; }
+    #log .ok  { color: #4ade80; }
+    #log .err { color: #f87171; }
+    #log .warn { color: #fbbf24; }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .config-grid input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #f9fafb;
+    }
+
+    .config-grid label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Pendo + Intercom Integration Test</h1>
+  <span>APP-147357 &mdash; Intercom activation &amp; duplicate module cards</span>
+</header>
+
+<div class="container">
+
+  <!-- Identity Config -->
+  <div class="card">
+    <h2>Visitor &amp; Account Identity</h2>
+    <div class="config-grid">
+      <div>
+        <label>Visitor ID</label>
+        <input id="visitorId" value="test-visitor-001" />
+      </div>
+      <div>
+        <label>Visitor Email</label>
+        <input id="visitorEmail" value="test@example.com" />
+      </div>
+      <div>
+        <label>Account ID</label>
+        <input id="accountId" value="test-account-001" />
+      </div>
+      <div>
+        <label>Account Name</label>
+        <input id="accountName" value="Test Account" />
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn-primary" onclick="initPendo()">Initialize / Re-identify Pendo</button>
+      <button class="btn-primary" onclick="initIntercom()">Initialize / Re-boot Intercom</button>
+      <button class="btn-secondary" onclick="initBoth()">Initialize Both</button>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="card">
+    <h2>Integration Status</h2>
+    <div class="status-row">
+      <div class="status-item">
+        <label>Pendo Agent</label>
+        <div class="value" id="pendoStatus"><span class="badge gray">Not loaded</span></div>
+      </div>
+      <div class="status-item">
+        <label>Intercom Widget</label>
+        <div class="value" id="intercomStatus"><span class="badge gray">Not loaded</span></div>
+      </div>
+      <div class="status-item">
+        <label>Active Visitor</label>
+        <div class="value" id="activeVisitor">&mdash;</div>
+      </div>
+      <div class="status-item">
+        <label>Active Account</label>
+        <div class="value" id="activeAccount">&mdash;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Actions -->
+  <div class="card">
+    <h2>Test Actions</h2>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="trackEvent('test_button_clicked')">Track Event</button>
+      <button class="btn-secondary" onclick="showResourceCenter()">Show Resource Center</button>
+      <button class="btn-secondary" onclick="showIntercom()">Show Intercom</button>
+      <button class="btn-secondary" onclick="hideIntercom()">Hide Intercom</button>
+      <button class="btn-secondary" onclick="updateIntercom()">Update Intercom</button>
+      <button class="btn-danger" onclick="shutdownIntercom()">Shutdown Intercom</button>
+    </div>
+  </div>
+
+  <!-- Console Log -->
+  <div class="card">
+    <h2>Event Log</h2>
+    <div id="log"></div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     PENDO SNIPPET
+     Subscription: 4832fd43-86ac-447e-b05c-c72369ab7d04
+     ============================================================ -->
+<script>
+(function(publicAppId){
+  (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+  v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];for(w=0,x=v.length;w<x;++w)(function(m){
+      o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo-link.pendo-dev.com/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+})('4832fd43-86ac-447e-b05c-c72369ab7d04');
+</script>
+
+<!-- ============================================================
+     INTERCOM SNIPPET
+     Replace YOUR_INTERCOM_APP_ID with your actual Intercom App ID
+     ============================================================ -->
+<script>
+var INTERCOM_APP_ID = 'YOUR_INTERCOM_APP_ID';
+
+window.intercomSettings = {
+  app_id: INTERCOM_APP_ID
+};
+
+(function(){
+  var w=window;var ic=w.Intercom;
+  if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}
+  else{
+    var d=document;var i=function(){i.c(arguments);};
+    i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;
+    var l=function(){
+      var s=d.createElement('script');s.type='text/javascript';s.async=true;
+      s.src='https://widget.intercom.io/widget/'+INTERCOM_APP_ID;
+      var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);
+    };
+    if(document.readyState==='complete'){l();}
+    else if(w.attachEvent){w.attachEvent('onload',l);}
+    else{w.addEventListener('load',l,false);}
+  }
+})();
+</script>
+
+<!-- ============================================================
+     TEST HARNESS
+     ============================================================ -->
+<script>
+  var logEl = document.getElementById('log');
+
+  function log(msg, type) {
+    var ts = new Date().toLocaleTimeString();
+    var cls = type || '';
+    logEl.innerHTML += '<span class="ts">[' + ts + ']</span> <span class="' + cls + '">' + msg + '</span>\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function getFields() {
+    return {
+      visitorId:   document.getElementById('visitorId').value.trim(),
+      visitorEmail:document.getElementById('visitorEmail').value.trim(),
+      accountId:   document.getElementById('accountId').value.trim(),
+      accountName: document.getElementById('accountName').value.trim()
+    };
+  }
+
+  function initPendo() {
+    var f = getFields();
+    try {
+      pendo.initialize({
+        visitor: {
+          id:    f.visitorId,
+          email: f.visitorEmail
+        },
+        account: {
+          id:   f.accountId,
+          name: f.accountName
+        }
+      });
+      document.getElementById('pendoStatus').innerHTML   = '<span class="badge green">Initialized</span>';
+      document.getElementById('activeVisitor').textContent = f.visitorId;
+      document.getElementById('activeAccount').textContent  = f.accountId;
+      log('pendo.initialize() called — visitor: ' + f.visitorId + ', account: ' + f.accountId, 'ok');
+    } catch(e) {
+      log('pendo.initialize() error: ' + e.message, 'err');
+    }
+  }
+
+  function initIntercom() {
+    var f = getFields();
+    try {
+      if (typeof INTERCOM_APP_ID === 'undefined' || INTERCOM_APP_ID === 'YOUR_INTERCOM_APP_ID') {
+        log('Intercom App ID not set — edit INTERCOM_APP_ID in index.html', 'warn');
+        return;
+      }
+      Intercom('boot', {
+        app_id:  INTERCOM_APP_ID,
+        user_id: f.visitorId,
+        email:   f.visitorEmail,
+        name:    f.visitorId,
+        company: { id: f.accountId, name: f.accountName }
+      });
+      document.getElementById('intercomStatus').innerHTML = '<span class="badge green">Booted</span>';
+      log('Intercom("boot") called — user: ' + f.visitorId, 'ok');
+    } catch(e) {
+      log('Intercom boot error: ' + e.message, 'err');
+    }
+  }
+
+  function initBoth() { initPendo(); initIntercom(); }
+
+  function trackEvent(name) {
+    try {
+      pendo.track(name, { source: 'test-page' });
+      log('pendo.track("' + name + '")', 'ok');
+    } catch(e) {
+      log('pendo.track error: ' + e.message, 'err');
+    }
+  }
+
+  function showResourceCenter() {
+    try {
+      pendo.showGuideById && pendo.showGuideById('resource-center');
+      if (pendo.BuildingBlocks && pendo.BuildingBlocks.BuildingBlockResourceCenter) {
+        pendo.BuildingBlocks.BuildingBlockResourceCenter.getResourceCenter().show();
+        log('Resource Center opened via BuildingBlocks API', 'ok');
+      } else {
+        log('Resource Center: pendo.BuildingBlocks not available — trigger via the badge in the UI', 'warn');
+      }
+    } catch(e) {
+      log('showResourceCenter error: ' + e.message, 'err');
+    }
+  }
+
+  function showIntercom() {
+    try { Intercom('show'); log('Intercom("show")', 'ok'); }
+    catch(e) { log('Intercom show error: ' + e.message, 'err'); }
+  }
+
+  function hideIntercom() {
+    try { Intercom('hide'); log('Intercom("hide")', 'ok'); }
+    catch(e) { log('Intercom hide error: ' + e.message, 'err'); }
+  }
+
+  function updateIntercom() {
+    var f = getFields();
+    try {
+      Intercom('update', { user_id: f.visitorId, email: f.visitorEmail });
+      log('Intercom("update") called', 'ok');
+    } catch(e) {
+      log('Intercom update error: ' + e.message, 'err');
+    }
+  }
+
+  function shutdownIntercom() {
+    try {
+      Intercom('shutdown');
+      document.getElementById('intercomStatus').innerHTML = '<span class="badge red">Shutdown</span>';
+      log('Intercom("shutdown") called', 'warn');
+    } catch(e) {
+      log('Intercom shutdown error: ' + e.message, 'err');
+    }
+  }
+
+  // Auto-detect agent load
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if (window.pendo && pendo.getVersion) {
+        document.getElementById('pendoStatus').innerHTML = '<span class="badge green">Agent loaded</span>';
+        log('Pendo agent detected (v' + (pendo.getVersion ? pendo.getVersion() : '?') + ')', 'ok');
+      }
+      if (window.Intercom && typeof Intercom === 'function') {
+        if (typeof INTERCOM_APP_ID !== 'undefined' && INTERCOM_APP_ID !== 'YOUR_INTERCOM_APP_ID') {
+          document.getElementById('intercomStatus').innerHTML = '<span class="badge green">Script loaded</span>';
+          log('Intercom script detected', 'ok');
+        } else {
+          log('Intercom script present but App ID is placeholder — set INTERCOM_APP_ID', 'warn');
+        }
+      }
+    }, 2000);
+  });
+
+  log('Test page loaded. Set identity fields and click Initialize.');
+</script>
+
+</body>
+</html>
